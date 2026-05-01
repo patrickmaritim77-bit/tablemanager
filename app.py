@@ -35,6 +35,5 @@ def create_app():
 
     return app
 
-if __name__ == '__main__':
-    app = create_app()
-    app.run(debug=True)
+# This line must be here – it creates the WSGI application object
+app = create_app()
