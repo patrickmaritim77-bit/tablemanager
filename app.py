@@ -10,6 +10,9 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # Ensure TLS works with Atlas
+    app.config["MONGO_OPTIONS"] = {"tlsCAFile": certifi.where()}
+
     mongo.init_app(app)
     jwt.init_app(app)
 
