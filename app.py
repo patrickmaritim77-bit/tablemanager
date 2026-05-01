@@ -10,9 +10,6 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Use the same TLS bypass that worked in Compass
-    app.config["MONGO_OPTIONS"] = {"tls": True, "tlsAllowInvalidCertificates": True}
-
     mongo.init_app(app)
     jwt.init_app(app)
 
@@ -38,5 +35,6 @@ def create_app():
 
     return app
 
-# This is the WSGI instance Gunicorn looks for
-app = create_app()
+if __name__ == '__main__':
+    app = create_app()
+    app.run(debug=True)
