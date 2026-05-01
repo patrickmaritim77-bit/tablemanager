@@ -5,10 +5,27 @@ from auth import auth_bp
 from superadmin_routes import superadmin_bp
 from tenant_routes import tenant_bp
 from models import create_superadmin_if_not_exists, create_demo_tenant_if_not_exists
+import ssl
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Create a custom SSL context that forces TLS 1.2 and skips all validation
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2   # Atlas requires TLS 1.2
+
+    app.config["MONGO_OPTIONS"] = {
+        "tls": True,
+        "tlsAllowInvalidCertificates": True,
+        "tlsAllowInvalidHostnames": True,
+        "ssl": True,                           # older PyMongo compatibility
+        "ssl_cert_reqs": ssl.CERT_NONE,
+        "ssl_check_hostname": False,
+        "ssl_context": ctx                      # <-- This forces TLS 1.2
+    }
 
     mongo.init_app(app)
     jwt.init_app(app)
@@ -35,6 +52,4 @@ def create_app():
 
     return app
 
-if __name__ == '__main__':
-    app = create_app()
-    app.run(debug=True)
+app = create_app()
