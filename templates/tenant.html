@@ -1,0 +1,316 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tenant Dashboard - TableManager</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .card-header { font-weight: bold; }
+    .notification-area { max-height: 200px; overflow-y: auto; }
+    .hidden { display: none !important; }
+    #notifBadge { cursor: pointer; }
+  </style>
+</head>
+<body class="bg-light">
+  <nav class="navbar navbar-dark bg-success mb-4">
+    <div class="container-fluid">
+      <span class="navbar-brand">📊 Table Banking – Chairperson</span>
+      <div>
+        <span class="badge bg-warning text-dark me-2 hidden" id="notifBadge" onclick="showNotifications()">0</span>
+        <button type="button" class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container" id="loginForm">
+    <div class="row justify-content-center">
+      <div class="col-md-5">
+        <div class="card shadow">
+          <div class="card-body">
+            <h3 class="card-title text-center mb-4">Tenant Login</h3>
+            <div class="mb-3"><input type="email" id="email" class="form-control" placeholder="email"></div>
+            <div class="mb-3"><input type="password" id="password" class="form-control" placeholder="password"></div>
+            <button type="button" class="btn btn-success w-100" onclick="tenantLogin()">Login</button>
+            <div id="loginError" class="text-danger mt-2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container hidden" id="dashboard">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+      <div class="col"><div class="card text-white bg-primary"><div class="card-body"><h5>Members</h5><h2 id="sMembers">0</h2></div></div></div>
+      <div class="col"><div class="card text-white bg-success"><div class="card-body"><h5>Total Contrib</h5><h2 id="sContrib">0</h2></div></div></div>
+      <div class="col"><div class="card text-white bg-warning"><div class="card-body"><h5>Active Loans</h5><h2 id="sLoans">0</h2></div></div></div>
+      <div class="col"><div class="card text-white bg-info"><div class="card-body"><h5>Projects</h5><h2 id="sProjects">0</h2></div></div></div>
+    </div>
+
+    <!-- Notification Bar -->
+    <div class="card mb-4 border-warning">
+      <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+        <span>🔔 Notifications</span>
+        <button type="button" class="btn btn-sm btn-outline-dark" onclick="markRead()">Mark all read</button>
+      </div>
+      <div class="card-body notification-area" id="notifPanel">
+        <ul class="list-group list-group-flush" id="notifList"></ul>
+      </div>
+    </div>
+
+    <!-- Performance Charts -->
+    <div class="row mb-4">
+      <div class="col-md-6"><canvas id="chartContribByMember"></canvas></div>
+      <div class="col-md-6"><canvas id="chartLoanStatus"></canvas></div>
+    </div>
+    <div class="row mb-4">
+      <div class="col-12"><canvas id="chartMonthlyContrib"></canvas></div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="members-tab" data-bs-toggle="tab" data-bs-target="#membersTab" type="button" role="tab" aria-selected="true">Members</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="contrib-tab" data-bs-toggle="tab" data-bs-target="#contribTab" type="button" role="tab" aria-selected="false">Contributions</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="loans-tab" data-bs-toggle="tab" data-bs-target="#loansTab" type="button" role="tab" aria-selected="false">Loans</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projectsTab" type="button" role="tab" aria-selected="false">Projects</button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <!-- Members Tab -->
+      <div class="tab-pane fade show active" id="membersTab" role="tabpanel" aria-labelledby="members-tab">
+        <form class="row g-2 mb-3" id="memberForm">
+          <div class="col-md-3"><input id="mFname" class="form-control" placeholder="First Name" required></div>
+          <div class="col-md-3"><input id="mLname" class="form-control" placeholder="Last Name" required></div>
+          <div class="col-md-3"><input id="mEmail" class="form-control" placeholder="Email" required></div>
+          <div class="col-md-2"><input id="mPhone" class="form-control" placeholder="Phone"></div>
+          <div class="col-md-1"><button type="submit" class="btn btn-primary w-100">Add</button></div>
+        </form>
+        <table class="table" id="membersTable">
+          <thead><tr><th>No</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <!-- Contributions Tab -->
+      <div class="tab-pane fade" id="contribTab" role="tabpanel" aria-labelledby="contrib-tab">
+        <form class="row g-2 mb-3" id="contribForm">
+          <div class="col-md-6"><select id="contribMember" class="form-select"></select></div>
+          <div class="col-md-4"><input id="contribAmount" type="number" step="0.01" class="form-control" placeholder="Amount"></div>
+          <div class="col-md-2"><button type="submit" class="btn btn-success w-100">Record</button></div>
+        </form>
+        <ul class="list-group" id="contribList"></ul>
+      </div>
+      <!-- Loans Tab -->
+      <div class="tab-pane fade" id="loansTab" role="tabpanel" aria-labelledby="loans-tab">
+        <form class="row g-2 mb-3" id="loanForm">
+          <div class="col-md-3"><select id="loanMember" class="form-select"></select></div>
+          <div class="col-md-2"><input id="loanPrincipal" class="form-control" placeholder="Principal"></div>
+          <div class="col-md-2"><input id="loanInterest" class="form-control" placeholder="Interest %"></div>
+          <div class="col-md-2"><input id="loanDuration" class="form-control" placeholder="Days"></div>
+          <div class="col-md-2"><button type="submit" class="btn btn-warning w-100">Issue</button></div>
+        </form>
+        <table class="table" id="loansTable">
+          <thead><tr><th>Member</th><th>Principal</th><th>Total</th><th>Due</th><th>Status</th><th>Repay</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <!-- Projects Tab -->
+      <div class="tab-pane fade" id="projectsTab" role="tabpanel" aria-labelledby="projects-tab">
+        <form class="row g-2 mb-3" id="projectForm">
+          <div class="col-md-3"><input id="projName" class="form-control" placeholder="Project Name"></div>
+          <div class="col-md-4"><input id="projDesc" class="form-control" placeholder="Description"></div>
+          <div class="col-md-3"><input id="projBudget" class="form-control" placeholder="Budget"></div>
+          <div class="col-md-2"><button type="submit" class="btn btn-info text-white w-100">Create</button></div>
+        </form>
+        <ul class="list-group" id="projectList"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Modal -->
+  <div class="modal fade" id="notifModal" tabindex="-1" aria-labelledby="notifModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="notifModalLabel">All Notifications</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body"><ul class="list-group" id="modalNotifList"></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let tenantToken='', tenantId='';
+    function tenantLogin(){
+      fetch('/api/auth/tenant/login',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email:document.getElementById('email').value, password:document.getElementById('password').value})
+      }).then(r=>r.json()).then(d=>{
+        if(d.token){ tenantToken=d.token; tenantId=d.tenant_id;
+          document.getElementById('loginForm').classList.add('hidden');
+          document.getElementById('dashboard').classList.remove('hidden');
+          loadAll(); }
+        else document.getElementById('loginError').innerText=d.msg||'Login failed';
+      });
+    }
+    function logout(){ tenantToken=''; location.reload(); }
+    function authHeaders(){ return {'Authorization':'Bearer '+tenantToken,'Content-Type':'application/json'}; }
+    function loadAll(){ loadDashboard(); loadMembers(); loadContributions(); loadLoans(); loadProjects(); loadCharts(); loadNotifications(); }
+
+    function loadDashboard(){
+      fetch('/api/tenant/dashboard',{headers:authHeaders()}).then(r=>r.json()).then(d=>{
+        document.getElementById('sMembers').innerText=d.members;
+        document.getElementById('sContrib').innerText=d.total_contributions;
+        document.getElementById('sLoans').innerText=d.active_loans;
+        document.getElementById('sProjects').innerText=d.projects;
+        let badge = document.getElementById('notifBadge');
+        badge.innerText = d.unread_notifications || 0;
+        if(d.unread_notifications>0) badge.classList.remove('hidden');
+        else badge.classList.add('hidden');
+      });
+    }
+
+    function loadNotifications(){
+      fetch('/api/tenant/notifications',{headers:authHeaders()}).then(r=>r.json()).then(data=>{
+        let bar = document.getElementById('notifList'); bar.innerHTML='';
+        data.slice(0,5).forEach(n=>{ bar.innerHTML+=`<li class="list-group-item">${n.message} <small>${new Date(n.created_at).toLocaleString()}</small></li>`; });
+        if(data.length===0) bar.innerHTML='<li class="list-group-item text-muted">No notifications</li>';
+      });
+    }
+
+    let charts = {};
+    function loadCharts(){
+      fetch('/api/tenant/dashboard/charts',{headers:authHeaders()}).then(r=>r.json()).then(data=>{
+        Object.values(charts).forEach(c => c.destroy());
+        let ctx1 = document.getElementById('chartContribByMember').getContext('2d');
+        charts.bar = new Chart(ctx1, {
+          type: 'bar',
+          data: {
+            labels: data.contrib_by_member.map(c => c.member),
+            datasets: [{ label: 'Total Contribution', data: data.contrib_by_member.map(c => c.total), backgroundColor: '#0d6efd' }]
+          },
+          options: { responsive: true, plugins: { title: { display: true, text: 'Member Contributions' } } }
+        });
+        let ctx2 = document.getElementById('chartLoanStatus').getContext('2d');
+        charts.pie = new Chart(ctx2, {
+          type: 'pie',
+          data: {
+            labels: ['Active', 'Repaid'],
+            datasets: [{ data: [data.loan_status.active, data.loan_status.repaid], backgroundColor: ['#ffc107', '#198754'] }]
+          },
+          options: { plugins: { title: { display: true, text: 'Loan Status' } } }
+        });
+        let months = data.monthly_contributions.map(c => c._id);
+        let values = data.monthly_contributions.map(c => c.total);
+        let ctx3 = document.getElementById('chartMonthlyContrib').getContext('2d');
+        charts.line = new Chart(ctx3, {
+          type: 'line',
+          data: {
+            labels: months,
+            datasets: [{ label: 'Monthly Contributions', data: values, borderColor: '#198754' }]
+          },
+          options: { responsive: true, plugins: { title: { display: true, text: 'Monthly Contributions Trend' } }, scales: { y: { beginAtZero: true } } }
+        });
+      });
+    }
+
+    function loadMembers(){
+      fetch('/api/tenant/members',{headers:authHeaders()}).then(r=>r.json()).then(data=>{
+        let tbody = document.querySelector('#membersTable tbody'); tbody.innerHTML='';
+        let selM = document.getElementById('contribMember'); selM.innerHTML='';
+        let selL = document.getElementById('loanMember'); selL.innerHTML='';
+        data.forEach(m=>{
+          tbody.innerHTML += `<tr><td>${m.member_number}</td><td>${m.first_name} ${m.last_name}</td><td>${m.email}</td><td>${m.phone}</td><td>${m.role||'member'}</td><td><button type="button" class="btn btn-sm btn-danger" onclick="deleteMember('${m._id}')">Del</button></td></tr>`;
+          selM.innerHTML += `<option value="${m._id}">${m.first_name} ${m.last_name}</option>`;
+          selL.innerHTML += `<option value="${m._id}">${m.first_name} ${m.last_name}</option>`;
+        });
+      });
+    }
+    document.getElementById('memberForm').addEventListener('submit',e=>{
+      e.preventDefault();
+      fetch('/api/tenant/members',{method:'POST',headers:authHeaders(),
+        body:JSON.stringify({first_name:document.getElementById('mFname').value,last_name:document.getElementById('mLname').value,
+          email:document.getElementById('mEmail').value,phone:document.getElementById('mPhone').value})
+      }).then(r=>r.json()).then(d=>{alert(d.msg); loadMembers(); loadDashboard(); loadCharts();});
+    });
+    function deleteMember(id){ if(confirm('Delete?')) fetch('/api/tenant/members/'+id,{method:'DELETE',headers:authHeaders()}).then(r=>r.json()).then(d=>{loadMembers(); loadDashboard(); loadCharts();}); }
+
+    function loadContributions(){
+      fetch('/api/tenant/contributions',{headers:authHeaders()}).then(r=>r.json()).then(data=>{
+        let ul = document.getElementById('contribList'); ul.innerHTML='';
+        data.forEach(c=>{ ul.innerHTML+=`<li class="list-group-item">${c.receipt_number}: ${c.amount} on ${new Date(c.date).toLocaleDateString()}</li>`; });
+      });
+    }
+    document.getElementById('contribForm').addEventListener('submit',e=>{
+      e.preventDefault();
+      fetch('/api/tenant/contributions',{method:'POST',headers:authHeaders(),
+        body:JSON.stringify({member_id:document.getElementById('contribMember').value,amount:document.getElementById('contribAmount').value})
+      }).then(r=>r.json()).then(d=>{alert(d.msg); loadContributions(); loadDashboard(); loadCharts();});
+    });
+
+    function loadLoans(){
+      fetch('/api/tenant/loans',{headers:authHeaders()}).then(r=>r.json()).then(data=>{
+        let tbody = document.querySelector('#loansTable tbody'); tbody.innerHTML='';
+        data.forEach(l=>{
+          tbody.innerHTML += `<tr><td>${l.member_id}</td><td>${l.principal}</td><td>${l.total_repayable}</td><td>${new Date(l.due_date).toLocaleDateString()}</td><td>${l.status}</td><td><input id="repay${l._id}" class="form-control form-control-sm d-inline" size="6" placeholder="Amt"><button type="button" class="btn btn-sm btn-success" onclick="repayLoan('${l._id}')">Pay</button></td></tr>`;
+        });
+      });
+    }
+    document.getElementById('loanForm').addEventListener('submit',e=>{
+      e.preventDefault();
+      fetch('/api/tenant/loans',{method:'POST',headers:authHeaders(),
+        body:JSON.stringify({member_id:document.getElementById('loanMember').value,principal:document.getElementById('loanPrincipal').value,
+          interest_rate:document.getElementById('loanInterest').value,duration_days:document.getElementById('loanDuration').value})
+      }).then(r=>r.json()).then(d=>{alert(d.msg); loadLoans(); loadDashboard(); loadCharts();});
+    });
+    function repayLoan(id){
+      let amt = document.getElementById('repay'+id).value;
+      fetch('/api/tenant/loans/'+id+'/repay',{method:'POST',headers:authHeaders(),body:JSON.stringify({amount:amt})}).then(r=>r.json()).then(d=>{alert(d.msg); loadLoans(); loadCharts();});
+    }
+
+    function loadProjects(){
+      fetch('/api/tenant/projects',{headers:authHeaders()}).then(r=>r.json()).then(data=>{
+        let ul = document.getElementById('projectList'); ul.innerHTML='';
+        data.forEach(p=>{ ul.innerHTML+=`<li class="list-group-item d-flex justify-content-between">${p.name} (${p.budget}) - ${p.status}<button type="button" class="btn btn-sm btn-outline-primary" onclick="contribProj('${p._id}')">Contribute</button></li>`; });
+      });
+    }
+    document.getElementById('projectForm').addEventListener('submit',e=>{
+      e.preventDefault();
+      fetch('/api/tenant/projects',{method:'POST',headers:authHeaders(),
+        body:JSON.stringify({name:document.getElementById('projName').value,description:document.getElementById('projDesc').value,budget:document.getElementById('projBudget').value})
+      }).then(r=>r.json()).then(d=>{alert(d.msg); loadProjects(); loadDashboard();});
+    });
+    function contribProj(pid){
+      let mid = document.getElementById('contribMember').value;
+      let amt = prompt('Amount:');
+      if(amt) fetch('/api/tenant/projects/'+pid+'/contribute',{method:'POST',headers:authHeaders(),
+        body:JSON.stringify({member_id:mid,amount:amt})}).then(r=>r.json()).then(d=>{alert(d.msg); loadProjects();});
+    }
+
+    function showNotifications(){
+      fetch('/api/tenant/notifications',{headers:authHeaders()}).then(r=>r.json()).then(data=>{
+        let ul = document.getElementById('modalNotifList'); ul.innerHTML='';
+        data.forEach(n=>{ ul.innerHTML+=`<li class="list-group-item">${n.message} <small>${new Date(n.created_at).toLocaleString()}</small></li>`; });
+        new bootstrap.Modal(document.getElementById('notifModal')).show();
+      });
+    }
+    function markRead(){
+      fetch('/api/tenant/notifications/read',{method:'POST',headers:authHeaders()}).then(r=>r.json()).then(d=>{
+        document.getElementById('notifBadge').classList.add('hidden');
+        loadNotifications();
+      });
+    }
+  </script>
+</body>
+</html>
